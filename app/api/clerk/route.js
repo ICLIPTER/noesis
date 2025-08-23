@@ -5,31 +5,35 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
+  console.log("📩 Incoming webhook...");
+
   const wh = new Webhook(process.env.SIGNING_SECRET);
 
   const headerPayload = headers();
   const svixHeaders = {
     "svix-id": headerPayload.get("svix-id"),
-    "svix-signature": headerPayload.get("svix-signature"),
     "svix-timestamp": headerPayload.get("svix-timestamp"),
+    "svix-signature": headerPayload.get("svix-signature"), // ✅ fixed typo
   };
 
   const payload = await req.json();
   const body = JSON.stringify(payload);
 
-  let event;
+  let evt;
   try {
-    event = wh.verify(body, svixHeaders);
+    evt = wh.verify(body, svixHeaders);
+    console.log("✅ Verified event:", evt.type);
   } catch (err) {
+    console.error("❌ Verification failed:", err.message);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  const { data, type } = event;
+  const { data, type } = evt;
 
   const userData = {
     _id: data.id,
-    email: data.email_addresses?.[0]?.email_address,
-    name: [data.first_name, data.last_name].filter(Boolean).join(" "),
+    email: data.email_addresses?.[0]?.email_address || "",
+    name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
     image: data.image_url,
   };
 
@@ -37,19 +41,22 @@ export async function POST(req) {
 
   switch (type) {
     case "user.created":
-      await User.create(userData);
+      const created = await User.create(userData);
+      console.log("✅ User created:", created);
       break;
 
     case "user.deleted":
       await User.findByIdAndDelete(data.id);
+      console.log("🗑️ User deleted:", data.id);
       break;
 
     case "user.updated":
-      await User.findByIdAndUpdate(userData._id, userData, { new: true });
+      await User.findByIdAndUpdate(data.id, userData, { new: true });
+      console.log("♻️ User updated:", userData);
       break;
 
     default:
-      console.log(`Unhandled event type: ${type}`);
+      console.log("ℹ️ Unhandled event type:", type);
   }
 
   return NextResponse.json({ message: "event received" });

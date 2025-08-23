@@ -10,18 +10,25 @@ export default async function connectDB() {
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
+    console.log("Connecting to MongoDB:", process.env.MONGODB_URI);
+
+    mongoose.set("strictQuery", true);
+
     cached.promise = mongoose
       .connect(process.env.MONGODB_URI, {
-        bufferCommands: false, // optional: disables mongoose buffering
+        bufferCommands: false,
       })
-      .then((mongoose) => mongoose);
+      .then((mongoose) => {
+        console.log("✅ MongoDB connected");
+        return mongoose;
+      });
   }
 
   try {
     cached.conn = await cached.promise;
   } catch (error) {
     cached.promise = null; // reset on failure
-    console.error("Error connecting to database:", error);
+    console.error("❌ Error connecting to database:", error);
     throw error;
   }
 
