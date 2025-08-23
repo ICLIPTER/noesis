@@ -4,53 +4,57 @@ import User from "@/models/User";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
+export async function POST(req) {
+  const wh = new Webhook(process.env.SIGNING_SECRET);
+  const headerPayload = await headers();
 
-export async function POST(req){
-const wh = new Webhook(process.env.SIGNING_SECRET);
-const headerPayload = await headers()
-const svixHeaders = {
-    "svix-id" : headerPayload.get("svix-id"),
+  const svixHeaders = {
+    "svix-id": headerPayload.get("svix-id"),
     "svix-timestamp": headerPayload.get("svix-timestamp"),
-    "svix-signature" : headerPayload.get("svix-signatute")
+    "svix-signature": headerPayload.get("svix-signature"), 
+  };
 
-};
+  let payload;
+  let evt;
 
-// GET the payload and varrify it
+  try {
+    payload = await req.json();
+    const body = JSON.stringify(payload);
+    evt = wh.verify(body, svixHeaders);
+  } catch (err) {
+    console.error("Webhook verification failed:", err);
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
 
-const payload = await req.json();
-const body = JSON.stringify(payload);
-const {data, type} = wh.verify(body, svixHeaders)
+  const { data, type } = evt;
 
-// prepare the user data to be saved in the database
-
-
-const userData = {
+  const userData = {
     _id: data.id,
-    email : data.email_addresses[0].email_address,
-    name : `${data.firstname} ${data.lastname}`,
-    image : data.image_url
-};
+    email: data.email_addresses?.[0]?.email_address || "",
+    name: `${data.first_name || ""} ${data.last_name || ""}`.trim(), // ✅ correct fields
+    image: data.image_url,
+  };
 
-await connectDB();
+  await connectDB();
 
-switch (type) {
-    case 'user.created':
+  try {
+    switch (type) {
+      case "user.created":
         await User.create(userData);
         break;
-     case 'user.updated':
+      case "user.updated":
         await User.findByIdAndUpdate(data.id, userData);
         break;
-    case 'user.deleted':
+      case "user.deleted":
         await User.findByIdAndDelete(data.id);
         break;
-   
-
-    default:
+      default:
         break;
+    }
+  } catch (err) {
+    console.error("DB operation failed:", err);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
+
+  return NextResponse.json({ message: "event received" });
 }
-
-return NextResponse.json({message: 'event recived'});
-
-}
-
-
