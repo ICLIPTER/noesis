@@ -2,62 +2,55 @@ import { Webhook } from "svix";
 import connectDB from "@/config/db";
 import User from "@/models/User";
 import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req) {
-  console.log("📩 Incoming webhook...");
 
-  const wh = new Webhook(process.env.SIGNING_SECRET);
-
-  const headerPayload = headers();
-  const svixHeaders = {
-    "svix-id": headerPayload.get("svix-id"),
+export async function POST(req){
+const wh = new Webhook(process.env.SIGNING_SECRET);
+const headerPayload = await headers()
+const svixHeaders = {
+    "svix-id" : headerPayload.get("svix-id"),
     "svix-timestamp": headerPayload.get("svix-timestamp"),
-    "svix-signature": headerPayload.get("svix-signature"), // ✅ fixed typo
-  };
+    "svix-signature" : headerPayload.get("svix-signatute")
 
-  const payload = await req.json();
-  const body = JSON.stringify(payload);
+};
 
-  let evt;
-  try {
-    evt = wh.verify(body, svixHeaders);
-    console.log("✅ Verified event:", evt.type);
-  } catch (err) {
-    console.error("❌ Verification failed:", err.message);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-  }
+// GET the payload and varrify it
 
-  const { data, type } = evt;
+const payload = await req.json();
+const body = JSON.stringify(payload);
+const {data, type} = wh.verify(body, svixHeaders)
 
-  const userData = {
+// prepare the user data to be saved in the database
+
+
+const userData = {
     _id: data.id,
-    email: data.email_addresses?.[0]?.email_address || "",
-    name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
-    image: data.image_url,
-  };
+    email : data.email_addresses[0].email_address,
+    name : `${data.firstname} ${data.lastname}`,
+    image : data.image_url
+};
 
-  await connectDB();
+await connectDB();
 
-  switch (type) {
-    case "user.created":
-      const created = await User.create(userData);
-      console.log("✅ User created:", created);
-      break;
+switch (type) {
+    case 'user.created':
+        await User.create(userData);
+        break;
+    case 'user.deleted':
+        await User.findByIdAndDelete(data.id);
+        break;
+    case 'user.updated':
+        await User.findByIdAndUpdate(userData._id, userData, { new: true });
 
-    case "user.deleted":
-      await User.findByIdAndDelete(data.id);
-      console.log("🗑️ User deleted:", data.id);
-      break;
-
-    case "user.updated":
-      await User.findByIdAndUpdate(data.id, userData, { new: true });
-      console.log("♻️ User updated:", userData);
-      break;
+        break;
 
     default:
-      console.log("ℹ️ Unhandled event type:", type);
-  }
-
-  return NextResponse.json({ message: "event received" });
+        break;
 }
+
+return NextResponse.json({message: 'event recived'});
+
+}
+
+
