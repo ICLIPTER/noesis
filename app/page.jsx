@@ -1,5 +1,7 @@
 'use client';
 import { assets } from "@/assets/assets";
+import Message from "@/components/Message";
+import PromptBox from "@/components/PromptBox";
 import Sidebar from "@/components/Sidebar";
 import { Fascinate } from "next/font/google";
 import Image from "next/image";
@@ -31,9 +33,11 @@ export default function Home() {
           <p className="text-sm mt-2">How can I help you today?</p>
           </>
         ) : (
-          <div></div>
+          <div>
+            <Message role='user' content='What is next js'/>
+          </div>
         )}
-        {/* prmpt box */}
+        <PromptBox isLoading={isLoading} setIsLoading={setIsLoading}/>
         <p className="text-xs absolute bottom-1 text-gray-500">AI-generated, for reference only</p>
 
         </div>
