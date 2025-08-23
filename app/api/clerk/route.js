@@ -2,7 +2,7 @@ import { Webhook } from "svix";
 import connectDB from "@/config/db";
 import User from "@/models/User";
 import { headers } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 
 export async function POST(req){
@@ -37,13 +37,13 @@ switch (type) {
     case 'user.created':
         await User.create(userData);
         break;
+     case 'user.updated':
+        await User.findByIdAndUpdate(data.id, userData);
+        break;
     case 'user.deleted':
         await User.findByIdAndDelete(data.id);
         break;
-    case 'user.updated':
-        await User.findByIdAndUpdate(userData._id, userData, { new: true });
-
-        break;
+   
 
     default:
         break;
