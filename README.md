@@ -27,12 +27,6 @@ Noesis is an advanced AI-powered search platform inspired by DeepSeek, designed 
 
 ---
 
-## Demo
-
-A live demo of Noesis can be found [here](#) *(replace with actual link when available).*
-
----
-
 ## Tech Stack
 
 - **Frontend:** Next.js, React, Tailwind CSS
