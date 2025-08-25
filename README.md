@@ -41,7 +41,7 @@ Noesis is an advanced AI-powered search platform inspired by DeepSeek, designed 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/YourUsername/noesis.git
+git clone https://github.com/ICLIPTER/noesis.git
 cd noesis
 npm install
 npm run dev
