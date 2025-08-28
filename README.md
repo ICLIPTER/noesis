@@ -1,3 +1,4 @@
+
 # Noesis
 
 Noesis is an advanced AI-powered search platform inspired by DeepSeek, designed to provide fast, intelligent, and context-aware results. Built with **Next.js** and leveraging the **DeepSeek API**, Noesis enables developers and users to perform semantic searches with ease and efficiency.
